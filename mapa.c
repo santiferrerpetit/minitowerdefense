@@ -68,10 +68,10 @@ void imprimir_casilla(TipoCasilla tipo, int vida, int vida_max) {
             printf("T  ");
             return;
         case ENEMIGO:
-            int color = color_de_vida(vida, vida_max);
+            //int color = color_de_vida(vida, vida_max);
             // Usar esta linea cuando se quieran imprimir vidas en vez de colores
-            // printf("%d  ", vida);
-            printf("\x1b[38;5;%dm%-3s\x1b[0m", color, "*");
+            printf("%d  ", vida);
+            //printf("\x1b[38;5;%dm%-3s\x1b[0m", color, "*");
             return;
         case BLOQUEADO:
         case VACIO:

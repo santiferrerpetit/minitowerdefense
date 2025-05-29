@@ -1,4 +1,5 @@
 #include "estrategia.h"
+#include "simulador.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -58,7 +59,51 @@ void disponer_con_backtracking(Nivel* nivel, Mapa* mapa) {
     return;
 }
 
+int daño_potencial(Mapa *mapa, int x, int y) {
+    int daño = 0;
+
+    for (int i = 0; i < mapa->alto; i++) {
+        for (int j = 0; j < mapa->ancho; j++) {
+            if (mapa->casillas[i][j] == CAMINO) {
+                int dist = abs(i - x) + abs(j - y);
+                if (dist <= mapa->distancia_ataque) {
+                    daño++;
+                }
+            }
+        }
+    }
+
+    return daño;
+}
+
+
+
 void disponer_custom(Nivel* nivel, Mapa* mapa) {
-    /* A cargo de la/el estudiante */
-    return;
+    int torres_colocadas = 0;
+
+    while (torres_colocadas < mapa->cant_torres) {
+        int mejor_x = -1;
+        int mejor_y = -1;
+        int max_daño = -1;
+
+        for (int i = 0; i < mapa->alto; i++) {
+            for (int j = 0; j < mapa->ancho; j++) {
+                if (mapa->casillas[i][j] == VACIO) {
+                    int daño = daño_potencial(mapa, i, j);
+                    if (daño > max_daño) {
+                        max_daño = daño;
+                        mejor_x = i;
+                        mejor_y = j;
+                    }
+                }
+            }
+        }
+
+        if (mejor_x != -1 && mejor_y != -1) {
+            colocar_torre(mapa, mejor_x, mejor_y, torres_colocadas);
+            torres_colocadas++;
+        } else {
+            break;
+        }
+    }
 }
