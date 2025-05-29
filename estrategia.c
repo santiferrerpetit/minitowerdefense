@@ -54,9 +54,9 @@ void disponer(Nivel* nivel, Mapa* mapa) {
     }
 }
 
-void disponer_con_backtracking(Nivel* nivel, Mapa* mapa) {
-    /* A cargo de la/el estudiante */
-    return;
+
+void disponer_con_backtracking(Nivel* nivel, Mapa* mapa){
+    //A cargo del alumno.
 }
 
 int daño_potencial(Mapa *mapa, int x, int y) {
