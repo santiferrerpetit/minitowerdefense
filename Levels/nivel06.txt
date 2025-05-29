@@ -1,7 +1,7 @@
 Ancho: 5
 Alto: 5
 Cantidad de enemigos: 17
-Vida inicial: 6
+Vida inicial: 20
 Cantidad de torres: 2
 Distancia de ataque: 2
 Largo camino: 9
