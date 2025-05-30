@@ -101,88 +101,82 @@ int buscar_indice(Coordenada *arreglo, int cantidad, Coordenada objetivo) {
 void disponer_con_backtracking(Nivel* nivel, Mapa* mapa) {
     int cantidad_casillas = mapa->alto * mapa->ancho;
     Coordenada pos_val_torre[cantidad_casillas];
-    
     int cant_pos_validas = posiciones_validas(pos_val_torre, mapa->casillas, mapa->alto, mapa->ancho);
 
-    int usadas[cant_pos_validas]; // Bitmap de coordenadas usadas 
-    Pila *stack = pila_crear();
-    int idx = 0;
-    
+    // Inicializar un arreglo para marcar qué posiciones ya fueron usadas
+    int torres_usadas[cant_pos_validas];
+
     for (int i = 0; i < cant_pos_validas; i++) {
-        usadas[i] = 0; 
+        torres_usadas[i] = 0;
     }
-    int funciono = 0;
-    while (!funciono) { 
-        // Paso 1: Intentar agregar una nueva coordenada al stack
-        if (stack->ultimo+1 < mapa->cant_torres) { 
-            int bandera_encontrado = 0; 
-            
-            // Buscamos la próxima coordenada disponible
+
+    Pila *pila_de_torres = pila_crear();
+    int idx = 0; 
+    int solucion_encontrada = 0;
+
+    // Backtracking se ejecuta hasta encontrar una solución
+    while (!solucion_encontrada) {
+        // Si aún no hemos colocado todas las torres
+        if (pila_de_torres->ultimo + 1 < mapa->cant_torres) {
+            int encontrado = 0;  // Bandera para saber si encontramos una posición libre
+
+            // Buscar la siguiente posición válida y libre para colocar la torre
             for (int i = idx; i < cant_pos_validas; i++) {
-                if (usadas[i] == 0) { 
-                    pila_apilar(stack, pos_val_torre[i]);
-                    usadas[i] = 1; 
-                    idx = i + 1;
-                    bandera_encontrado = 1;
+                if (torres_usadas[i] == 0) {
+                    pila_apilar(pila_de_torres, pos_val_torre[i]);
+                    torres_usadas[i] = 1;  // Marcar esta posición como usada
+                    idx = i + 1; 
+                    encontrado = 1;
                     break;
                 }
             }
 
-            if (bandera_encontrado == 0) { 
-    
-                if (pila_es_vacia(stack)) {
-                    printf("no hay ninguna solucion\n");
-                    disponer(nivel, mapa);
-                    funciono = 1;
-                }
-
-                Coordenada ultima = pila_tope(stack);
-                pila_desapilar(stack);
-
-                // Buscamos su índice
-                int ultimo_indice = buscar_indice(pos_val_torre, cant_pos_validas, ultima);
-
-                if (ultimo_indice != -1) { 
-                   usadas[ultimo_indice] = 0;
-                }
-                idx = ultimo_indice + 1;
-            }
-        }
-        else {
-            //aca evaluamos las torres en el stack, si funciona, terminar.
-            if(simular_turno_backtracking(nivel, mapa, stack->datos) == 1){
-                funciono = 1;
-                for (int torres_colocadas = 0; torres_colocadas < mapa->cant_torres; torres_colocadas++) {
-                    int nueva_torre_x = stack->datos[torres_colocadas].x;
-                    int nueva_torre_y = stack->datos[torres_colocadas].y;
-                    colocar_torre(mapa, nueva_torre_x, nueva_torre_y, torres_colocadas);
+            if (!encontrado) {
+                // Si no encontramos posiciones disponibles y la pila está vacía, no hay solución posible
+                if (pila_es_vacia(pila_de_torres)) {
+                    disponer(nivel, mapa);  // Como no hay solucion disponemos las torres de manera aleatoria
+                    solucion_encontrada = 1;
+                } else {
+                    // Hacer backtrack: quitar la última torre colocada
+                    Coordenada ultima = pila_tope(pila_de_torres);
+                    pila_desapilar(pila_de_torres);
+                    int ultimo_indice = buscar_indice(pos_val_torre, cant_pos_validas, ultima);
+                    if (ultimo_indice != -1) torres_usadas[ultimo_indice] = 0;  // Marcar como disponible
+                    idx = ultimo_indice + 1;  // Reanudar búsqueda desde la siguiente posición
                 }
             }
-            // Hacemos backtrack si la combinación no es válida
-            if(funciono == 0){
-                Coordenada ultima = pila_tope(stack);
-                pila_desapilar(stack);
-            
-                int ultimo_indice = buscar_indice(pos_val_torre, cant_pos_validas, ultima);
-                if (ultimo_indice != -1) {
-                    usadas[ultimo_indice] = 0;
+        } else {
+            // Evaluar la configuración
+            if (simular_turno_backtracking(nivel, mapa, pila_de_torres->datos) == 1) {
+                // Colocar torres definitivamente en el mapa
+                solucion_encontrada = 1;
+                for (int i = 0; i < mapa->cant_torres; i++) {
+                    int x = pila_de_torres->datos[i].x;
+                    int y = pila_de_torres->datos[i].y;
+                    colocar_torre(mapa, x, y, i);
                 }
-                idx = ultimo_indice + 1;
+            } else {
+                // Configuración no válida: hacer backtrack
+                Coordenada ultima = pila_tope(pila_de_torres);
+                pila_desapilar(pila_de_torres);
+                int ultimo_indice = buscar_indice(pos_val_torre, cant_pos_validas, ultima);
+                if (ultimo_indice != -1) torres_usadas[ultimo_indice] = 0;  // Marcar posición como disponible
+                idx = ultimo_indice + 1;  // Continuar búsqueda desde siguiente posición
             }
         }
     }
-    pila_destruir(stack);
-}
 
+    // Liberamos la memoria usada por la pila
+    pila_destruir(pila_de_torres);
+}
 
 void disponer_custom(Nivel* nivel, Mapa* mapa) {
     int torres_colocadas = 0;
 
     while (torres_colocadas < mapa->cant_torres) {
-        int mejor_x = -1;
-        int mejor_y = -1;
-        int max_daño = -1;
+        int mejor_x = -1, mejor_y = -1, max_daño = -1;
 
+        // Buscar la casilla vacía con el máximo daño potencial
         for (int i = 0; i < mapa->alto; i++) {
             for (int j = 0; j < mapa->ancho; j++) {
                 if (mapa->casillas[i][j] == VACIO) {
@@ -196,11 +190,12 @@ void disponer_custom(Nivel* nivel, Mapa* mapa) {
             }
         }
 
+        // Colocar torre si se encontró una posición válida
         if (mejor_x != -1 && mejor_y != -1) {
             colocar_torre(mapa, mejor_x, mejor_y, torres_colocadas);
             torres_colocadas++;
         } else {
-            break;
+            break;  // Salir si no hay más posiciones válidas
         }
     }
 }
